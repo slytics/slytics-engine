@@ -5,7 +5,7 @@ def insertRow(table, data):
     cursor = conn.cursor()
     
     for key in data.keys():
-        data[key] = conn.escape(data[key])
+        data[key] = conn.literal(data[key])
     
     columns = str(data.keys()).replace("[","(").replace("]",")").replace("'","") #these values are no good because they will replace the actual content of the fields as well
     values = str(data.values()).replace("[","(").replace("]",")") #use mid function instead to alter only first and last char of dict str representation
