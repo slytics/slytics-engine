@@ -10,4 +10,6 @@ def formatList(list_object):
     return res + ")"
     
 def insertRow(cursor, table, data):
-    cursor.execute("insert into  %s%s values%s" % (table, formatList(data.keys()).replace("'",""), formatList(data.values())))
+    keys = str(formatList(data.keys()).replace("'",""))
+    values = str(formatList(data.values()))
+    cursor.execute("insert into  %s%s values%s" % (table, keys, values))
