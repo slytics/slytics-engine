@@ -9,9 +9,12 @@ def formatList(list_object):
         res += char
     return res + ")"
     
+def fixS(string):
+    return str(string).replace("'","''")
+    
 def insertRow(cursor, table, data):
     keys = str(formatList(data.keys()).replace("'",""))
     for key in data:
-        data[key] = cursor.connection.literal(data[key])
+        data[key] = fixS(data[key])
     values = str(formatList(data.values()))
     cursor.execute("insert into  %s%s values%s" % (table, keys, values))
