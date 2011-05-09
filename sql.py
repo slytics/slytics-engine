@@ -12,6 +12,6 @@ def formatList(list_object):
 def insertRow(cursor, table, data):
     keys = str(formatList(data.keys()).replace("'",""))
     for key in data:
-        data[key] = cursor.connection.escape(data[key])
+        data[key] = cursor.connection.literal(data[key])
     values = str(formatList(data.values()))
     cursor.execute("insert into  %s%s values%s" % (table, keys, values))
