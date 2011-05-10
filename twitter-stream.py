@@ -7,8 +7,11 @@ since_id = 0
 
 while True:
     conn = httplib.HTTPConnection("search.twitter.com")
-    conn.request("GET", "/search.json?q=youtube.com&rpp=100&result_type=recent&filter=links&since_id="+str(since_id), None, {"User-Agent":"VideoMuffin"})
-    res = conn.getresponse()
+    try: 
+        conn.request("GET", "/search.json?q=youtube.com&rpp=100&result_type=recent&filter=links&since_id="+str(since_id), None, {"User-Agent":"VideoMuffin"})
+        res = conn.getresponse()
+    except socket.error, (value,message):
+        print "Socket error %s: %s" % (value, message)
     requests +=1
     
     try:
