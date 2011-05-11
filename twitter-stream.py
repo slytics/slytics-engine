@@ -27,7 +27,7 @@ while True:
             tweets_this_request +=1
             if since_id < tweet["id"]: since_id = tweet["id"]
             sql_data = {"id":tweet["id"], "data":json.dumps(tweet)}
-            sql.insertRow(cursor, "twitter_statuses", sql_data)
+            sql.insertRow(cursor, "twitter_statuses", sql_data, True)
         cursor.close()
     conn.close()
     

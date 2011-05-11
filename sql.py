@@ -12,9 +12,16 @@ def formatList(list_object):
 def fixS(string):
     return str(string).replace("'","''")
     
-def insertRow(cursor, table, data):
+def insertRow(cursor, table, data, catch_duplicate = False):
     keys = str(formatList(data.keys()).replace("'",""))
     for key in data:
         data[key] = fixS(data[key])
     values = str(formatList(data.values()))
-    cursor.execute("insert into  %s%s values%s" % (table, keys, values))
+    try:
+        cursor.execute("insert into  %s%s values%s" % (table, keys, values))
+    except MySQLdb.IntegrityError, message:
+        if str(message[0]) == "1062" and catch_duplicate == True: #1062 is duplicate key error code
+            pass
+        else:
+            raise
+        
