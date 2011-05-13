@@ -2,8 +2,6 @@ import httplib, time, json, MySQLdb, sql, xml.etree.ElementTree, urllib, urlpars
 requests = 0
 access_token = "189798971066603|486f5fac1bb43befc78b7e14.1-1357950042|LOONKF6Zp8yVXff-Ck5i1sC2hk0"
 
-over_400_count = 0
-
 def getLocales():
     """returns list of all supported facebook locales found at facebook.com/translations/FacebookLocales.xml"""
     conn = httplib.HTTPConnection("www.facebook.com")
@@ -25,22 +23,17 @@ locales = {}
 for locale in locales_list:
     locales[locale] = {"since":int(time.time()), "skip":{}, "last_retrieve":time.time(), "next_retrieve":time.time()}
 
+conn = httplib.HTTPSConnection("graph.facebook.com")
 while True:
     for l in locales:
         locale = locales[l]
         if locale["next_retrieve"] <= int(time.time()):
-            conn = httplib.HTTPSConnection("graph.facebook.com")
-            headers = {"Content-type":"application/x-www-form-urlencoded", "Accept":"text/plain", "User-Agent":"VideoMuffin"} 
-            try:
-                conn.request("GET", "/search?q=http://&type=post&limit=500&locale=%s&since=%s&access_token=%s" % (l, locale["since"], access_token), None, headers)
-                parsed = json.loads(conn.getresponse().read())
-            except socket.error, (value,message):
-                print "Socket error %s: %s" % (value, message)
-            conn.close
+            conn.request("GET", "/search?q=http://&type=post&limit=500&locale=%s&since=%s&access_token=%s" % (l, locale["since"], access_token))
+            parsed = json.loads(conn.getresponse().read())
             
             if parsed.has_key("data"):
                 if parsed.has_key("paging"): locales[l]["since"] = int(urlparse.parse_qs(urlparse.urlparse(parsed["paging"]["previous"])[4])["since"][0]) - 1
-                delay = ( 100 / ( (len(parsed["data"]) + 5) / (time.time() - locales[l]["last_retrieve"]) ) )
+                delay = ( 100 / ( (len(parsed["data"]) + 5) / (time.time() - locale["last_retrieve"]) ) )
                 if delay > 300: delay = 300
                 locales[l]["next_retrieve"] = time.time() + delay
                 locales[l]["last_retrieve"] = time.time()
@@ -56,8 +49,7 @@ while True:
                     if locales[l]["skip"][key] != locales[l]["since"]: locales[l]["skip"].pop(key)
                 cursor.close()
             
-                if len(parsed["data"]) > 400: over_400_count +=1
-                #print l, " / ", len(parsed["data"]), " / ", requests, " / " ,over_400_count
+                print l, " / ", len(parsed["data"]), " / ", requests
             requests +=1
             
             
