@@ -72,16 +72,17 @@ while True:
     for l in locales:
         locale = locales[l]
         if locale["next_retrieve"] <= int(time.time()):
-        
+            
+            parsed = {}
             try:
                 conn.request("GET", "/search?q=http://&type=post&limit=500&locale=%s&since=%s&access_token=%s" % (l, locale["since"], access_token))
                 statusEvent(l, "requests")
+                res = conn.getresponse() #this is where a socket error occurred; need to be mindful of this for twitter-stream as well
+                if str(res.status) !=  "200": statusEvent(l, "non_200_responses")
+                parsed = json.loads(res.read())
             except socket.error as ex:
                 print ex
-            res = conn.getresponse()
-            if str(res.status) !=  "200": statusEvent(l, "non_200_responses")
-            
-            parsed = json.loads(res.read())
+
             if parsed.has_key("data"):
                 if parsed.has_key("paging"): locales[l]["since"] = int(urlparse.parse_qs(urlparse.urlparse(parsed["paging"]["previous"])[4])["since"][0]) - 1
                 delay = ( 100 / ( (len(parsed["data"]) + 5) / (time.time() - locale["last_retrieve"]) ) )

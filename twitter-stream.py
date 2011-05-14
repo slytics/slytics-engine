@@ -43,16 +43,18 @@ status().start()
 conn = httplib.HTTPConnection("search.twitter.com")
 since_id = 0
 while True:
+    resp = "{}"
     try:
         conn.request("GET", "/search.json?q=youtube.com&rpp=100&result_type=recent&filter=links&since_id="+str(since_id), None, {"User-Agent":"VideoMuffin"})
         statusEvent("requests")
+        res = conn.getresponse()
+        if str(res.status) !=  "200": statusEvent("non_200_responses")
+        resp = res.read()
     except socket.error as ex:
         print ex
-    res = conn.getresponse()
-    if str(res.status) !=  "200": statusEvent("non_200_responses")
     
     try:
-        parsed = json.loads(res.read())
+        parsed = json.loads(resp)
     except ValueError:
         print "Twitter returned a malformed JSON object"
         
