@@ -74,6 +74,7 @@ while True:
         if locale["next_retrieve"] <= int(time.time()):
             
             parsed = {}
+            
             try:
                 conn.request("GET", "/search?q=http://&type=post&limit=500&locale=%s&since=%s&access_token=%s" % (l, locale["since"], access_token))
                 statusEvent(l, "requests")
@@ -82,7 +83,7 @@ while True:
                 parsed = json.loads(res.read())
             except socket.error as ex:
                 print ex
-
+            
             if parsed.has_key("data"):
                 if parsed.has_key("paging"): locales[l]["since"] = int(urlparse.parse_qs(urlparse.urlparse(parsed["paging"]["previous"])[4])["since"][0]) - 1
                 delay = ( 100 / ( (len(parsed["data"]) + 5) / (time.time() - locale["last_retrieve"]) ) )
@@ -104,7 +105,9 @@ while True:
                 
                 if len(parsed["data"]) > 480: statusEvent(l, "pegged_requests")
             
-            sql_data = {"time":str(time.time()), "locale":l, "since":locale["since"], "status_code":str(res.status), "results":str(len(parsed["data"]))} 
+            result_count = 0
+            if parsed.has_key("data"): result_count = len(parsed["data"])
+            sql_data = {"time":str(time.time()), "locale":l, "since":locale["since"], "status_code":str(res.status), "results":str(result_count)} 
             lock.acquire()
             sql.insertRow(cursor, "facebook_requests"+tableSuffix(), sql_data)
             cursor.connection.commit()
