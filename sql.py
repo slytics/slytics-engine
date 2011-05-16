@@ -2,7 +2,8 @@ import MySQLdb
 
 #connections
 class slytics1:
-    connection = MySQLdb.connect(host="slytics1",user="root",passwd="clt052$",port=int(3306),db="slytics")
+    def __init__(self):
+        self.connection = MySQLdb.connect(host="slytics1",user="root",passwd="clt052$",port=int(3306),db="slytics")
 
 def formatList(list_object):
     res = "("
