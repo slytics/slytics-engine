@@ -1,4 +1,6 @@
-import sql, json, time, re, urllib2, threading, Queue, urlparse
+import sql, json, time, re, urllib2, threading, Queue
+from urlparse import urlparse
+
 lock = threading.Lock()
 conn = sql.slytics1().connection
 cursor = conn.cursor()
