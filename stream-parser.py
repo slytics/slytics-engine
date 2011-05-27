@@ -1,16 +1,30 @@
-import sql, json, time, re, urllib2, threading, Queue
-from urlparse import urlparse
+import sql, json, time, re, urllib2, threading, Queue, urlparse
+from util import *
 
 lock = threading.Lock()
 conn = sql.slytics1().connection
 cursor = conn.cursor()
-count = 0
+status = status()
 q = Queue.Queue()
 
 def needsExpansion(url):
-    parsed = urlparse(url).hostname.lower()
+    parsed = urlparse.urlparse(url).hostname.lower()
     if "youtu.be" in parsed or "youtube.com" in parsed: return False
     return True
+
+def getVideoID(url):
+    parsed = urlparse.urlparse(url)
+    host = parsed.hostname.lower()
+    res = None
+    if "youtu.be" in host: res = parsed.path.replace("/", "")
+    if "youtube.com" in host:
+        if parsed.path=="/watch": 
+            query = urlparse.parse_qs(parsed.query)
+            if query.has_key("v"): res = query["v"][0]
+        if "/v/" in parsed.path: res= parsed.path.replace("/v/", "")
+        if "/embed/" in parsed.path: res= parsed.path.replace("/embed/", "")
+    if not res==None:
+        if len(res) >= 11: return res.strip()[:11]
     
 class worker(threading.Thread):
     def run(self):
@@ -18,91 +32,81 @@ class worker(threading.Thread):
             lock.acquire()
             if not q.empty():
                 jdata = q.get()
-                print "queue size: ", q.qsize()
                 lock.release()
                 status_id = jdata["id"]
                 text = ""
+                status_type = "facebook"
                 if "_" in list(str(status_id)): #facebook status
                     keys = ["message", "link", "description", "source"]
                     for key in keys:
                         if key in jdata: text += " "+jdata[key]
+                    status.event(status_type+"_statuses_parsed")
                 else: #twitter status
                     text = jdata["text"]
-        
+                    status_type = "twitter"
+                    status.event(status_type+"_statuses_parsed")
                 urls = re.findall("(?P<url>https?://[^\s]+)", text)
+                videos = []
                 for url in urls:
-                        u = url
+                    u = url
+                    if needsExpansion(url)==True: 
+                        try:
+                            response = urllib2.urlopen(str(url))
+                            u = response.url
+                            response.close()
+                            status.event(status_type+"_urls_expanded")
+                        except:
+                            status.event(status_type+"_expansion_exceptions")
+                    video_id = getVideoID(u)
+                    if video_id!=None and not video_id in videos: videos.append(video_id)
+                    if video_id!=None:
                         lock.acquire()
-                        global count
-                        count +=1
-                        statusEvent("count")
+                        sql_data = {"original_url":url[:200], "expanded_url":u[:1000], "video_id":video_id}
+                        sql.insertRow(cursor, "youtube_urls", sql_data, True)
+                        cursor.connection.commit()
                         lock.release()
-                        if needsExpansion(url) == True: 
-                            try:
-                                response = urllib2.urlopen(str(url))
-                                u = response.url
-                                response.close()
-                            except:
-                                pass
-                                print "expansion exception"
-                        #print url, " / ", u
+                    status.event(status_type+"_urls_found")
+                lock.acquire()
+                for video in videos:
+                    sql_data = {"id":video}
+                    sql.insertRow(cursor, "youtube_ids", sql_data, True)
+                    status.event(status_type+"_videos_found") 
+                cursor.connection.commit()
+                lock.release()
             else:
                 lock.release()
             time.sleep(0.1)
+
+#fire up worker threads            
 workers = []
 for i in range(40):
     workers.append(worker())
 for w in workers:
     w.start()
-    
-def isOdd(num):
-    return num & 1 and True or False
 
-def tableSuffix():
-    if isOdd(int(time.time())/3600): return "_1"
-    return "_2"
-start_time = time.time()
-status_data = {}
-
-def statusEvent(event_name):
-    t = str(int(time.time()))
-    if not status_data.has_key(t): status_data[t] = {}
-    if not status_data[t].has_key(event_name): status_data[t][event_name] = 0
-    status_data[t][event_name] +=1
-            
-class status(threading.Thread): #separate thread that periodically pushes status updates to sql
-    def run(self):
-        while True:
-            time.sleep(30)
-            t = int(time.time())
-            compiled_data = {60:{}, 3600:{}, 86400:{}} #compile data for intervals of a minute, hour and day
-            for k in status_data.keys():
-                for limit in compiled_data.keys():
-                     if int(k) >= (t - limit):
-                        for event_name in status_data[k].keys():
-                            if not compiled_data[limit].has_key(event_name): compiled_data[limit][event_name] = 0
-                            compiled_data[limit][event_name] += status_data[k][event_name]
-                if int(k) < (t - 86400): status_data.pop(k)            
-            compiled_data["start_time"] = start_time
-            compiled_data["compiled"] = t
-            compiled_data["queue_count"] = q.qsize()
-            sql_data = {"script":__file__, "added":time.time(), "data":json.dumps(compiled_data)}
-            sql.insertRow(cursor, "script_statuses"+tableSuffix(), sql_data)
-status().start()
-    
+#continuously populate up the queue
+queue_conn = sql.slytics1().connection
+queue_cursor = queue_conn.cursor()
+service = "twitter"
+max_id = {"twitter":0, "facebook":0}
+table_suffix = {"twitter":tableSuffix(), "facebook":tableSuffix()}
 while True:
-    cursor.execute("select data from statuses")
-    res = cursor.fetchone()
-    ids = ['dummy_value']
+    queue_cursor.execute("select data, sid, id from "+service+"_statuses"+table_suffix[service]+" where sid > "+str(max_id[service])+" limit 500")
+    res = queue_cursor.fetchone()
+    if res==None:
+        if table_suffix[service] != tableSuffix():
+            queue_cursor.execute("truncate table "+service+"_statuses"+table_suffix[service])
+            table_suffix[service] = tableSuffix()
+            max_id[service] = 0
     while res:
-        jdata = json.loads(res[0])
-        status_id = str(jdata["id"])
-        ids.append(status_id)
         lock.acquire()
-        q.put(jdata)
+        q.put(json.loads(res[0]))
         lock.release()
-        res = cursor.fetchone()
-    print len(ids)
-    cursor.execute("delete from statuses where id in%s" % sql.formatList(ids))
-    cursor.connection.commit()
-    time.sleep(1)
+        max_id[service] = res[1]
+        res = queue_cursor.fetchone()
+    queue_cursor.connection.commit()
+    if service=="twitter":
+        service = "facebook"
+    else:
+        service = "twitter"
+    time.sleep(0.1)

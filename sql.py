@@ -11,7 +11,11 @@ def formatList(list_object):
     return res + ")"
     
 def fixS(string):
-    return str(string).replace("'","''")
+    try:
+        s = str(string)
+    except UnicodeEncodeError as ex:
+        s = str(string.encode('utf-8'))
+    return s.replace("'","''")
     
 def insertRow(cursor, table, data, catch_duplicate = False, auto_commit = False):
     keys = str(formatList(data.keys()).replace("'",""))
