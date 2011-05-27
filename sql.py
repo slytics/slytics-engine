@@ -1,6 +1,5 @@
 import MySQLdb
 
-#connections
 class slytics1:
     def __init__(self):
         self.connection = MySQLdb.connect(host="slytics1",user="root",passwd="clt052$",port=int(3306),db="slytics")
