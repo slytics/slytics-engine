@@ -57,7 +57,6 @@ while True:
                     sql_data = {"id":post["id"], "data":json.dumps(post)}
                     if not locales[l]["skip"].has_key(post["id"]): 
                         sql.insertRow(cursor, "facebook_statuses"+tableSuffix(), sql_data, True)
-                        sql.insertRow(cursor, "statuses", sql_data, True)
                     if post["updated_time"] == parsed["data"][0]["updated_time"]: locales[l]["skip"][post["id"]] = locale["since"]
         
                 for key in locales[l]["skip"].keys():

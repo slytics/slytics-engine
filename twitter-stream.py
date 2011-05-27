@@ -31,7 +31,6 @@ while True:
             if since_id < tweet["id"]: since_id = tweet["id"]
             sql_data = {"id":tweet["id"], "data":json.dumps(tweet)}
             sql.insertRow(cursor, "twitter_statuses"+tableSuffix(), sql_data, True)
-            sql.insertRow(cursor, "statuses", sql_data, True)
         if tweets_this_request == 100: status.event("pegged_requests")
     sql_data = {"time":str(time.time()), "since_id":str(since_id), "status_code":str(res.status), "results":str(tweets_this_request)} 
     sql.insertRow(cursor, "twitter_requests"+tableSuffix(), sql_data)
