@@ -15,17 +15,21 @@ def needsExpansion(url):
     
 def expandURL(url):
     parsed = urlparse.urlparse(url)
-    h = httplib.HTTPConnection(parsed.netloc)
-    h.request('HEAD', str(parsed.path.encode("utf-8")))
-    response = h.getresponse()
-    if response.status/100 == 3 and response.getheader('Location'):
-        return response.getheader('Location')
-    else:
+    try:
+        h = httplib.HTTPConnection(parsed.netloc)
+        h.request('HEAD', str(parsed.path.encode("utf-8")))
+        response = h.getresponse()
+        if response.status/100 == 3 and response.getheader('Location'):
+            return response.getheader('Location')
+        else:
+            return url
+    except:
         return url
 
 def getVideoID(url):
     parsed = urlparse.urlparse(url)
     host = parsed.hostname
+    if host==None return None
     res = None
     if "youtu.be" in host: res = parsed.path.replace("/", "")
     if "youtube.com" in host:
