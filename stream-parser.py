@@ -63,7 +63,6 @@ class worker(threading.Thread):
                     u = url
                     if needsExpansion(url)==True: 
                         u = expandURL(url)
-                        print u
                     video_id = getVideoID(u)
                     if video_id!=None and not video_id in videos: videos.append(video_id)
                     if video_id!=None:
