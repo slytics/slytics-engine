@@ -40,7 +40,6 @@ def getVideoID(url):
 class worker(threading.Thread):
     def run(self):
         while True:
-            print "fire"
             lock.acquire()
             if not q.empty():
                 jdata = q.get()
@@ -85,7 +84,7 @@ class worker(threading.Thread):
 
 #fire up worker threads            
 workers = []
-for i in range(20):
+for i in range(40):
     workers.append(worker())
 for w in workers:
     w.start()
