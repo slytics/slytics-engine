@@ -1,4 +1,4 @@
-import sql, json, time, re, urllib2, threading, Queue, urlparse
+import sql, json, time, re, urllib2, threading, Queue, urlparse, httplib
 from util import *
 
 lock = threading.Lock()
@@ -8,9 +8,20 @@ status = status()
 q = Queue.Queue()
 
 def needsExpansion(url):
-    parsed = urlparse.urlparse(url).hostname.lower()
+    parsed = urlparse.urlparse(url).hostname
+    if parsed==None: return False
     if "youtu.be" in parsed or "youtube.com" in parsed: return False
     return True
+    
+def expandURL(url):
+    parsed = urlparse.urlparse(url)
+    h = httplib.HTTPConnection(parsed.netloc)
+    h.request('HEAD', str(parsed.path.encode("utf-8")))
+    response = h.getresponse()
+    if response.status/100 == 3 and response.getheader('Location'):
+        return response.getheader('Location')
+    else:
+        return url
 
 def getVideoID(url):
     parsed = urlparse.urlparse(url)
@@ -40,23 +51,21 @@ class worker(threading.Thread):
                     keys = ["message", "link", "description", "source"]
                     for key in keys:
                         if key in jdata: text += " "+jdata[key]
+                    lock.acquire()
                     status.event(status_type+"_statuses_parsed")
+                    lock.release()
                 else: #twitter status
                     text = jdata["text"]
                     status_type = "twitter"
+                    lock.acquire()
                     status.event(status_type+"_statuses_parsed")
+                    lock.release()
                 urls = re.findall("(?P<url>https?://[^\s]+)", text)
                 videos = []
                 for url in urls:
                     u = url
                     if needsExpansion(url)==True: 
-                        try:
-                            response = urllib2.urlopen(str(url))
-                            u = response.url
-                            response.close()
-                            status.event(status_type+"_urls_expanded")
-                        except:
-                            status.event(status_type+"_expansion_exceptions")
+                        u = expandURL(url)
                     video_id = getVideoID(u)
                     if video_id!=None and not video_id in videos: videos.append(video_id)
                     if video_id!=None:
@@ -65,12 +74,16 @@ class worker(threading.Thread):
                         sql.insertRow(cursor, "youtube_urls", sql_data, True)
                         cursor.connection.commit()
                         lock.release()
+                    lock.acquire()
                     status.event(status_type+"_urls_found")
+                    lock.release()
                 lock.acquire()
                 for video in videos:
                     sql_data = {"id":video}
                     sql.insertRow(cursor, "youtube_ids", sql_data, True)
+                    lock.acquire()
                     status.event(status_type+"_videos_found") 
+                    lock.release()
                 cursor.connection.commit()
                 lock.release()
             else:
@@ -79,9 +92,10 @@ class worker(threading.Thread):
 
 #fire up worker threads            
 workers = []
-for i in range(40):
+for i in range(20):
     workers.append(worker())
 for w in workers:
+    pass
     w.start()
 
 #continuously populate up the queue
