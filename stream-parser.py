@@ -25,7 +25,7 @@ def expandURL(url):
 
 def getVideoID(url):
     parsed = urlparse.urlparse(url)
-    host = parsed.hostname.lower()
+    host = parsed.hostname
     res = None
     if "youtu.be" in host: res = parsed.path.replace("/", "")
     if "youtube.com" in host:
@@ -40,6 +40,7 @@ def getVideoID(url):
 class worker(threading.Thread):
     def run(self):
         while True:
+            print "fire"
             lock.acquire()
             if not q.empty():
                 jdata = q.get()
@@ -51,21 +52,18 @@ class worker(threading.Thread):
                     keys = ["message", "link", "description", "source"]
                     for key in keys:
                         if key in jdata: text += " "+jdata[key]
-                    lock.acquire()
                     status.event(status_type+"_statuses_parsed")
-                    lock.release()
                 else: #twitter status
                     text = jdata["text"]
                     status_type = "twitter"
-                    lock.acquire()
                     status.event(status_type+"_statuses_parsed")
-                    lock.release()
                 urls = re.findall("(?P<url>https?://[^\s]+)", text)
                 videos = []
                 for url in urls:
                     u = url
                     if needsExpansion(url)==True: 
                         u = expandURL(url)
+                        print u
                     video_id = getVideoID(u)
                     if video_id!=None and not video_id in videos: videos.append(video_id)
                     if video_id!=None:
@@ -74,16 +72,12 @@ class worker(threading.Thread):
                         sql.insertRow(cursor, "youtube_urls", sql_data, True)
                         cursor.connection.commit()
                         lock.release()
-                    lock.acquire()
                     status.event(status_type+"_urls_found")
-                    lock.release()
                 lock.acquire()
                 for video in videos:
                     sql_data = {"id":video}
                     sql.insertRow(cursor, "youtube_ids", sql_data, True)
-                    lock.acquire()
                     status.event(status_type+"_videos_found") 
-                    lock.release()
                 cursor.connection.commit()
                 lock.release()
             else:
@@ -95,7 +89,6 @@ workers = []
 for i in range(20):
     workers.append(worker())
 for w in workers:
-    pass
     w.start()
 
 #continuously populate up the queue
