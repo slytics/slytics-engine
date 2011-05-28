@@ -29,7 +29,7 @@ def expandURL(url):
 def getVideoID(url):
     parsed = urlparse.urlparse(url)
     host = parsed.hostname
-    if host==None return None
+    if host==None: return None
     res = None
     if "youtu.be" in host: res = parsed.path.replace("/", "")
     if "youtube.com" in host:
