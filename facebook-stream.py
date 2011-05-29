@@ -39,7 +39,6 @@ while True:
                 if str(res.status) !=  "200": status.event(l+"non_200_responses")
                 parsed = json.loads(res.read())
             except:
-                raise
                 conn = httplib.HTTPSConnection("graph.facebook.com")
             
             if parsed.has_key("data"):
