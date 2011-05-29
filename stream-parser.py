@@ -88,7 +88,7 @@ class worker(threading.Thread):
 
 #fire up worker threads            
 workers = []
-for i in range(200):
+for i in range(40):
     workers.append(worker())
 for w in workers:
     w.start()
@@ -115,7 +115,8 @@ while True:
         res = queue_cursor.fetchone()
     queue_cursor.connection.commit()
     if service=="twitter":
-        service = "facebook"
+        pass
+        #service = "facebook"
     else:
         service = "twitter"
     time.sleep(0.1)
