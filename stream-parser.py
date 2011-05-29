@@ -88,7 +88,7 @@ class worker(threading.Thread):
 
 #fire up worker threads            
 workers = []
-for i in range(40):
+for i in range(200):
     workers.append(worker())
 for w in workers:
     w.start()
