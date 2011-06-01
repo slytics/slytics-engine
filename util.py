@@ -1,4 +1,4 @@
-import time, threading, json, sql
+import time, threading, json, sql, urlparse, httplib
 import __main__
 
 def isOdd(num):
@@ -41,4 +41,38 @@ class status(threading.Thread): #separate thread that periodically pushes status
         if not self.status_data.has_key(t): self.status_data[t] = {}
         if not self.status_data[t].has_key(event_name): self.status_data[t][event_name] = 0
         self.status_data[t][event_name] +=1
-            
+
+def needsExpansion(url):
+    parsed = urlparse.urlparse(url).hostname
+    if parsed==None: return False
+    if "youtu.be" in parsed or "youtube.com" in parsed: return False
+    return True
+    
+def expandURL(url):
+    parsed = urlparse.urlparse(url)
+    try:
+        h = httplib.HTTPConnection(parsed.netloc)
+        h.request('HEAD', str(parsed.path.encode("utf-8")))
+        response = h.getresponse()
+        if response.status/100 == 3 and response.getheader('Location'):
+            return response.getheader('Location')
+        else:
+            return url
+    except:
+        #status.event("expansion_exception")
+        return url
+
+def getVideoID(url):
+    parsed = urlparse.urlparse(url)
+    host = parsed.hostname
+    if host==None: return None
+    res = None
+    if "youtu.be" in host: res = parsed.path.replace("/", "")
+    if "youtube.com" in host:
+        if parsed.path=="/watch": 
+            query = urlparse.parse_qs(parsed.query)
+            if query.has_key("v"): res = query["v"][0]
+        if "/v/" in parsed.path: res= parsed.path.replace("/v/", "")
+        if "/embed/" in parsed.path: res= parsed.path.replace("/embed/", "")
+    if not res==None:
+        if len(res) >= 11: return res.strip()[:11]

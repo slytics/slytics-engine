@@ -16,6 +16,8 @@ while True:
         resp = res.read()
     except socket.error as ex:
         status.event(str(ex))
+    except httplib.IncompleteRead:
+        status.event("incomplete_read")
     
     try:
         parsed = json.loads(resp)
