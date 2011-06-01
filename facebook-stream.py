@@ -52,7 +52,7 @@ while True:
             
                 for post in parsed["data"]:
                     status.event(l+"posts")
-                    if post.has_key("from"): post["from"]["locale"] = l
+                    if "from" in post: post["from"].update({"locale":l})
                     sql_data = {"id":post["id"], "data":json.dumps(post)}
                     if not locales[l]["skip"].has_key(post["id"]): 
                         sql.insertRow(cursor, "facebook_statuses"+tableSuffix(), sql_data, True)
