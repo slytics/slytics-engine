@@ -1,4 +1,5 @@
 import MySQLdb
+from time import strftime
 
 class slytics1:
     def __init__(self):
@@ -30,4 +31,6 @@ def insertRow(cursor, table, data, catch_duplicate = False, auto_commit = False)
             pass
         else:
             raise
-        
+
+def formatDatetime(datetime_object):
+    return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
