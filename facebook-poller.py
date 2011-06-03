@@ -73,7 +73,7 @@ class worker(threading.Thread):
                         table_suffix = tableSuffix() #call once to ensure consistency across both times used in this method
                         video_id = getVideoID(video["normalized_url"])
                         sql_data = {"video_id":video_id, "data":""}
-                        sql.insertRow(cursor, "facebook_polldata"+table_suffix+", sql_data", True)
+                        sql.insertRow(cursor, "facebook_polldata"+table_suffix, sql_data, True)
                         total_count = video["total_count"]
                         if video_id in video_ids_seen and total_counts[video_id]==total_count:
                             status.event("data_unchanged") #data has remained unchanged since last request for this video
