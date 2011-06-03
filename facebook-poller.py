@@ -2,7 +2,6 @@ import sql, httplib, json, time, threading, Queue
 from util import *
 
 lock = threading.Lock()
-conn = sql.slytics1().connection
 q = Queue.Queue()
 status = status()
 
@@ -71,7 +70,7 @@ class worker(threading.Thread):
                         table_suffix = tableSuffix() #call once to ensure consistency across both times used in this method
                         video_id = getVideoID(video["normalized_url"])
                         sql_data = {"video_id":video_id, "data":""}
-                        sql.insertRow(self.cursor, "facebook_polldata"+table_suffix, sql_data, True)
+                        #sql.insertRow(self.cursor, "facebook_polldata"+table_suffix, sql_data, True)
                         total_count = video["total_count"]
                         lock.acquire()
                         if video_id in video_ids_seen and total_counts[video_id]==total_count:
@@ -84,7 +83,7 @@ class worker(threading.Thread):
                         lock.release()
                         status.event("urls_polled")
                         jdata.update({"retrieved":retrieved})
-                        self.cursor.execute("update facebook_polldata"+table_suffix+" set data = concat(data, '"+sql.fixS(json.dumps(jdata))+"') where video_id = '"+sql.fixS(video_id)+"'")
+                        #self.cursor.execute("update facebook_polldata"+table_suffix+" set data = concat(data, '"+sql.fixS(json.dumps(jdata))+"') where video_id = '"+sql.fixS(video_id)+"'")
                     except:
                         error_thrown = True
                 if error_thrown==True:
@@ -92,7 +91,7 @@ class worker(threading.Thread):
                     for req_id in req_ids: q.put(req_id)
                     lock.release()
                     status.event("request_errors")
-                self.conn.commit()
+                #self.conn.commit()
                 
 workers = []
 for i in range(50): workers.append(worker()) #fire up worker threads    
