@@ -14,7 +14,7 @@ class status(threading.Thread): #separate thread that periodically pushes status
         self.start_time = time.time()
         self.status_data = {}
         self.start()
-        
+        self.file = __main__.__file__
     def run(self):
         while True:
             time.sleep(30)
@@ -30,7 +30,7 @@ class status(threading.Thread): #separate thread that periodically pushes status
             compiled_data["start_time"] = self.start_time
             compiled_data["compiled"] = t
             
-            sql_data = {"script":__main__.__file__, "added":time.time(), "data":json.dumps(compiled_data)}
+            sql_data = {"script":self.file, "added":time.time(), "data":json.dumps(compiled_data)}
             cursor = sql.slytics1().connection.cursor()
             sql.insertRow(cursor, "script_statuses"+tableSuffix(), sql_data, False, True)
             cursor.connection.close()
