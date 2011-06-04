@@ -92,4 +92,4 @@ class worker(threading.Thread):
                 self.conn.commit()
                 
 workers = []
-for i in range(50): workers.append(worker()) #fire up worker threads    
+for i in range(100): workers.append(worker()) #fire up worker threads    
