@@ -65,24 +65,33 @@ class counter(threading.Thread):
             videos = set([])
             users = set([])
             post_counts = {}
+            jdata = {}
+            jdata["total_posts"] = len(stat_data)
+            total_posts = len(stat_data)
             for i in range(len(stat_data)):
                 user_id = stat_data[i][0]
                 video_id = stat_data[i][1]
                 status_time = stat_data[i][2]
-                videos.add(video_id)
-                users.add(user_id)
-                if not video_id in post_counts.keys():
-                    post_counts[video_id] = 0
-                post_counts[video_id] +=1
-                
-            print len(users), " users have shared ", len(videos), " videos"
+                if status_time < (time.time() - 86400):
+                    stat_data.pop(i)
+                else:
+                    videos.add(video_id)
+                    users.add(user_id)
+                    if not video_id in post_counts.keys(): post_counts[video_id] = 0
+                    post_counts[video_id] +=1
+            jdata["unique_users"] = len(users)
+            jdata["unique_videos"] = len(videos)     
             sorted_counts = sorted(post_counts.iteritems(), key=operator.itemgetter(1))
             sorted_counts.reverse()
-            print sorted_counts
+            jdata["top_100"] = sorted_counts[0:100]
+            lock.acquire()
+            sql_data = {"type":"facebook_posts", "added":str(time.time()), "data":json.dumps(jdata)}
+            sql.insertRow(cursor, "parsed_data"+tableSuffix(), sql_data, True)
+            cursor.connection.commit()
+            lock.release()  
             
 stat_counter = counter()             
-        
-        
+             
 #continuously populate up the queue
 queue_conn = sql.slytics1().connection
 queue_cursor = queue_conn.cursor()
