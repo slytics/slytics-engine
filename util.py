@@ -41,7 +41,7 @@ class status(threading.Thread): #separate thread that periodically pushes status
         if not self.status_data.has_key(t): self.status_data[t] = {}
         if not self.status_data[t].has_key(event_name): self.status_data[t][event_name] = 0
         self.status_data[t][event_name] +=1
-
+             
 def needsExpansion(url):
     parsed = urlparse.urlparse(url).hostname
     if parsed==None: return False
@@ -63,7 +63,10 @@ def expandURL(url):
         return url
 
 def getVideoID(url):
-    parsed = urlparse.urlparse(url)
+    try:
+        parsed = urlparse.urlparse(url)
+    except ValueError:
+        return None
     host = parsed.hostname
     if host==None: return None
     res = None

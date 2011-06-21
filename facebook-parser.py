@@ -1,4 +1,4 @@
-import sql, json, time, re, urllib2, threading, Queue, urlparse, httplib
+import sql, json, time, re, urllib2, threading, Queue, urlparse, httplib, operator
 from util import *
 
 lock = threading.Lock()
@@ -6,6 +6,8 @@ conn = sql.slytics1().connection
 cursor = conn.cursor()
 status = status()
 q = Queue.Queue()
+stat_data = []
+
 
 class worker(threading.Thread):
     def run(self):
@@ -15,6 +17,7 @@ class worker(threading.Thread):
                 jdata = q.get()
                 lock.release()
                 status_id = jdata["id"]
+                user_id = status_id.split("_")[0]
                 text = ""
                 for key in ["message", "link", "description", "source"]:
                     if key in jdata: text += " "+jdata[key]
@@ -35,7 +38,8 @@ class worker(threading.Thread):
                 for video in videos:
                     sql_data = {"id":video}
                     sql.insertRow(cursor, "youtube_ids", sql_data, True)
-                    status.event("videos_found") 
+                    status.event("videos_found")
+                    stat_data.append([user_id, video, time.time()]) 
                 cursor.connection.commit()
                 lock.release()
             else:
@@ -48,7 +52,37 @@ for i in range(50):
     workers.append(worker())
 for w in workers:
     w.start()
-
+    
+#fire up stat counting thread
+#to do: upon startup, grab extant data from last time stats were counted (if any); delete data > 24 hours old
+class counter(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.start()
+    def run(self):
+        while True:
+            time.sleep(30)
+            videos = set([])
+            users = set([])
+            post_counts = {}
+            for i in range(len(stat_data)):
+                user_id = stat_data[i][0]
+                video_id = stat_data[i][1]
+                status_time = stat_data[i][2]
+                videos.add(video_id)
+                users.add(user_id)
+                if not video_id in post_counts.keys():
+                    post_counts[video_id] = 0
+                post_counts[video_id] +=1
+                
+            print len(users), " users have shared ", len(videos), " videos"
+            sorted_counts = sorted(post_counts.iteritems(), key=operator.itemgetter(1))
+            sorted_counts.reverse()
+            print sorted_counts
+            
+stat_counter = counter()             
+        
+        
 #continuously populate up the queue
 queue_conn = sql.slytics1().connection
 queue_cursor = queue_conn.cursor()
@@ -57,9 +91,7 @@ table_suffix = tableSuffix()
 while True:
     queue_cursor.execute("select data, sid, id from facebook_statuses"+table_suffix+" where sid > "+str(max_id)+" limit 500")
     res = queue_cursor.fetchone()
-    if res==None:
-        if table_suffix != tableSuffix():
-            queue_cursor.execute("truncate table facebook_statuses"+table_suffix)
+    if res==None and table_suffix != tableSuffix():
             table_suffix = tableSuffix()
             max_id = 0
     while res:
