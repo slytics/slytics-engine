@@ -1,4 +1,4 @@
-import sql, httplib, json, time, threading, Queue
+import sql, httplib, json, time, threading, Queue, socket
 from util import *
 
 lock = threading.Lock()
@@ -58,13 +58,19 @@ class worker(threading.Thread):
             if len(req_ids) > 0:
                 req_url = base_url
                 for req_id in req_ids: req_url += youtube_base + req_id + ","
-                self.httpconn.request("GET", req_url)
-                res = self.httpconn.getresponse()
+                error_thrown = False
+                try:
+                    time.sleep(0.01)
+                    self.httpconn.request("GET", req_url)
+                    res = self.httpconn.getresponse()
+                except socket.error as ex:
+                    error_thrown = True
+                    res = ""
+                    self.httpconn = httplib.HTTPSConnection("api.facebook.com")
                 status.event("requests")
                 retrieved = time.time()
                 jdata = {}
                 parsed = json.loads(res.read())
-                error_thrown = False
                 for video in parsed:
                     try:
                         video_id = getVideoID(video["normalized_url"])
