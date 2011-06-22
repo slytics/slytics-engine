@@ -82,6 +82,7 @@ class worker(threading.Thread):
                         jdata.update({"retrieved":retrieved})
                         sql_data = {"data":json.dumps(jdata)}
                         sql.insertRow(self.cursor, "facebook_polldata"+tableSuffix(), sql_data)
+                        self.conn.commit()
                     except:
                         error_thrown = True
                 if error_thrown==True:
@@ -89,7 +90,6 @@ class worker(threading.Thread):
                     for req_id in req_ids: q.put(req_id)
                     lock.release()
                     status.event("request_errors")
-                self.conn.commit()
                 
 workers = []
 for i in range(100): workers.append(worker()) #fire up worker threads    
