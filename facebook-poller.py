@@ -62,7 +62,7 @@ class worker(threading.Thread):
                 try:
                     time.sleep(0.01)
                     self.httpconn.request("GET", req_url)
-                    res = self.httpconn.getresponse()
+                    res = self.httpconn.getresponse().read()
                 except socket.error as ex:
                     error_thrown = True
                     res = ""
@@ -70,7 +70,7 @@ class worker(threading.Thread):
                 status.event("requests")
                 retrieved = time.time()
                 jdata = {}
-                parsed = json.loads(res.read())
+                parsed = json.loads(res)
                 for video in parsed:
                     try:
                         video_id = getVideoID(video["normalized_url"])
