@@ -65,7 +65,7 @@ class worker(threading.Thread):
                     res = self.httpconn.getresponse().read()
                 except socket.error as ex:
                     error_thrown = True
-                    res = ""
+                    res = "{}"
                     self.httpconn = httplib.HTTPSConnection("api.facebook.com")
                 status.event("requests")
                 retrieved = time.time()

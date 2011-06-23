@@ -32,5 +32,12 @@ def insertRow(cursor, table, data, catch_duplicate = False, auto_commit = False)
         else:
             raise
 
+def scalar(cursor, table, data, primary_key, primary_key_value):
+    cursor.execute("select "+data+" from "+table+" where "+primary_key+" = '"+fixS(primary_key_value)+"'")
+    res = cursor.fetchone()
+    if res==None: return None
+    return res[0]
+    
+
 def formatDatetime(datetime_object):
     return datetime_object.strftime('%Y-%m-%d %H:%M:%S')
